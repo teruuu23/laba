@@ -1,0 +1,99 @@
+#include <iostream>
+#include <sstream>
+#include <vector>
+#include <algorithm>
+using namespace std;
+
+// Функция для нахождения самой длинной общей подстроки между двумя словами
+string longestCommonSubstring(const string &a, const string &b) {
+    int maxLen = 0;
+    string longest = "";
+
+    for (int i = 0; i < a.size(); i++) {
+        for (int j = 0; j < b.size(); j++) {
+            int k = 0;
+            while (i + k < a.size() && j + k < b.size() && a[i + k] == b[j + k])
+                k++;
+            if (k > maxLen) {
+                maxLen = k;
+                longest = a.substr(i, k);
+            }
+        }
+    }
+    return longest;
+}
+
+int main() {
+    string input;
+    cout << "Введите строку из 10 слов (на латинице):\n";
+    getline(cin, input);
+
+    stringstream ss(input);
+    vector<string> words;
+    string word;
+
+    while (ss >> word) {
+        words.push_back(word);
+    }
+
+    if (words.size() != 10) {
+        cout << "Ошибка: должно быть ровно 10 слов!" << endl;
+        return 1;
+    }
+
+    // 1. Количество слов, начинающихся с буквы 'b'
+    int countBstart = 0;
+    for (const auto &w : words)
+        if (!w.empty() && (w[0] == 'b' || w[0] == 'B')) countBstart++;
+
+    // 2. Длина самого длинного слова
+    int maxLen = words[0].size();
+    for (const auto &w : words)
+        maxLen = max(maxLen, (int)w.size());
+
+    // 3. Количество букв 'c' в третьем слове
+    int countCthird = 0;
+    if (words.size() >= 3)
+        for (char ch : words[2])
+            if (ch == 'c' || ch == 'C') countCthird++;
+
+    // 4. Заменить все буквы на верхний регистр
+    for (auto &w : words)
+        transform(w.begin(), w.end(), w.begin(), ::toupper);
+
+    // 5. Количество слов, где второй и предпоследний символ совпадают
+    int countSameSecondLast = 0;
+    for (const auto &w : words) {
+        if (w.size() >= 2 && w[1] == w[w.size() - 2])
+            countSameSecondLast++;
+    }
+
+    // 6. Самая длинная общая подстрока между двумя словами
+    string maxCommon = "";
+    int maxCommonLen = 0;
+    for (int i = 0; i < words.size(); i++) {
+        for (int j = i + 1; j < words.size(); j++) {
+            string sub = longestCommonSubstring(words[i], words[j]);
+            if (sub.size() > maxCommonLen) {
+                maxCommonLen = sub.size();
+                maxCommon = sub;
+            }
+        }
+    }
+
+    // Вывод результатов
+    cout << "\nРезультаты:\n";
+    cout << "1. Количество слов, начинающихся с 'b': " << countBstart << endl;
+    cout << "2. Длина самого длинного слова: " << maxLen << endl;
+    cout << "3. Количество букв 'c' в третьем слове: " << countCthird << endl;
+    cout << "4. Все слова переведены в верхний регистр:\n";
+    for (const auto &w : words) cout << w << " ";
+    cout << endl;
+    cout << "5. Количество слов, у которых совпадает второй и предпоследний символ: " << countSameSecondLast << endl;
+
+    if (!maxCommon.empty())
+        cout << "6. Самая длинная общая подстрока между словами: \"" << maxCommon << "\"" << endl;
+    else
+        cout << "6. Общих подстрок между словами нет." << endl;
+
+    return 0;
