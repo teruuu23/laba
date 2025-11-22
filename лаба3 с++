@@ -10,14 +10,14 @@ struct Product {
     double price;
 };
 
-// ------- Функция записи результата в output.txt -------
+//Функция записи результата в output.txt 
 void logOutput(const std::string& text) {
     std::ofstream out("output.txt", std::ios::app);
     out << text << "\n";
     out.close();
 }
 
-// ------- Чтение товаров из файла -------
+//Чтение товаров из файла 
 std::vector<Product> readProducts() {
     std::vector<Product> products;
     std::ifstream file("orders.txt");
@@ -41,7 +41,7 @@ std::vector<Product> readProducts() {
     return products;
 }
 
-// ------- Сохранение товаров в файл после сортировки -------
+//Сохранение товаров в файл после сортировки
 void writeProducts(const std::vector<Product>& products) {
     std::ofstream file("orders.txt");
     for (const auto& p : products) {
@@ -49,7 +49,7 @@ void writeProducts(const std::vector<Product>& products) {
     }
 }
 
-// ------- 1. Создание файла и ввод товаров -------
+//1. Создание файла и ввод товаров
 void createAndFill() {
     std::ofstream file("orders.txt");
 
@@ -76,7 +76,7 @@ void createAndFill() {
     file.close();
 }
 
-// ------- 2. Поиск товара -------
+//2. Поиск товара
 void searchProduct() {
     std::string target;
     std::cout << "Введите название товара для поиска: ";
@@ -100,7 +100,7 @@ void searchProduct() {
     }
 }
 
-// ------- 3. Добавление нового товара -------
+//3. Добавление нового товара
 void addProduct() {
     std::ofstream file("orders.txt", std::ios::app);
 
@@ -122,7 +122,7 @@ void addProduct() {
     logOutput("Добавлен новый товар: " + name);
 }
 
-// ------- 4. Вывод товаров с ценой ниже X -------
+//4. Вывод товаров с ценой ниже X 
 void filterByPrice() {
     double maxPrice;
     std::cout << "Введите максимальную цену: ";
@@ -144,7 +144,7 @@ void filterByPrice() {
     }
 }
 
-// ------- 5. Сортировка -------
+//5. Сортировка
 void sortProducts() {
     auto products = readProducts();
 
@@ -179,7 +179,7 @@ void sortProducts() {
     std::cout << "Сортировка выполнена.\n";
 }
 
-// ------------------------- МЕНЮ -------------------------
+//МЕНЮ
 int main() {
     while (true) {
         std::cout << "\n===== МЕНЮ =====\n";
