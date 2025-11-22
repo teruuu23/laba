@@ -1,0 +1,208 @@
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <string>
+#include <algorithm>
+
+struct Product {
+    std::string name;
+    int quantity;
+    double price;
+};
+
+// ------- Функция записи результата в output.txt -------
+void logOutput(const std::string& text) {
+    std::ofstream out("output.txt", std::ios::app);
+    out << text << "\n";
+    out.close();
+}
+
+// ------- Чтение товаров из файла -------
+std::vector<Product> readProducts() {
+    std::vector<Product> products;
+    std::ifstream file("orders.txt");
+
+    if (!file.is_open()) return products;
+
+    char buffer[256];
+    while (file.getline(buffer, sizeof(buffer))) {
+        Product p;
+        std::string line(buffer);
+        size_t p1 = line.find('|');
+        size_t p2 = line.find('|', p1 + 1);
+
+        p.name = line.substr(0, p1);
+        p.quantity = std::stoi(line.substr(p1 + 1, p2 - p1 - 1));
+        p.price = std::stod(line.substr(p2 + 1));
+
+        products.push_back(p);
+    }
+
+    return products;
+}
+
+// ------- Сохранение товаров в файл после сортировки -------
+void writeProducts(const std::vector<Product>& products) {
+    std::ofstream file("orders.txt");
+    for (const auto& p : products) {
+        file << p.name << "|" << p.quantity << "|" << p.price << "\n";
+    }
+}
+
+// ------- 1. Создание файла и ввод товаров -------
+void createAndFill() {
+    std::ofstream file("orders.txt");
+
+    while (true) {
+        std::string name;
+        std::cout << "Введите название товара (или пустую строку для выхода): ";
+        std::getline(std::cin, name);
+
+        if (name.empty()) break;
+
+        int quantity;
+        double price;
+
+        std::cout << "Количество: ";
+        std::cin >> quantity;
+        std::cout << "Цена за единицу: ";
+        std::cin >> price;
+        std::cin.ignore();
+
+        file << name << "|" << quantity << "|" << price << "\n";
+        logOutput("Добавлен товар: " + name);
+    }
+
+    file.close();
+}
+
+// ------- 2. Поиск товара -------
+void searchProduct() {
+    std::string target;
+    std::cout << "Введите название товара для поиска: ";
+    std::getline(std::cin, target);
+
+    auto products = readProducts();
+    bool found = false;
+
+    for (const auto& p : products) {
+        if (p.name == target) {
+            std::cout << "Найден: " << p.name << " / " << p.quantity << " шт / "
+                      << p.price << " руб\n";
+            logOutput("Найден товар: " + p.name);
+            found = true;
+        }
+    }
+
+    if (!found) {
+        std::cout << "Товар не найден.\n";
+        logOutput("Поиск: товар '" + target + "' не найден");
+    }
+}
+
+// ------- 3. Добавление нового товара -------
+void addProduct() {
+    std::ofstream file("orders.txt", std::ios::app);
+
+    std::string name;
+    int quantity;
+    double price;
+
+    std::cout << "Название товара: ";
+    std::getline(std::cin, name);
+    std::cout << "Количество: ";
+    std::cin >> quantity;
+    std::cout << "Цена: ";
+    std::cin >> price;
+    std::cin.ignore();
+
+    file << name << "|" << quantity << "|" << price << "\n";
+    file.close();
+
+    logOutput("Добавлен новый товар: " + name);
+}
+
+// ------- 4. Вывод товаров с ценой ниже X -------
+void filterByPrice() {
+    double maxPrice;
+    std::cout << "Введите максимальную цену: ";
+    std::cin >> maxPrice;
+    std::cin.ignore();
+
+    auto products = readProducts();
+
+    logOutput("Товары с ценой <= " + std::to_string(maxPrice) + ":");
+
+    for (const auto& p : products) {
+        if (p.price <= maxPrice) {
+            std::cout << p.name << " / " << p.quantity << " шт / "
+                      << p.price << " руб\n";
+
+            logOutput(p.name + " | " + std::to_string(p.quantity) +
+                      " | " + std::to_string(p.price));
+        }
+    }
+}
+
+// ------- 5. Сортировка -------
+void sortProducts() {
+    auto products = readProducts();
+
+    std::cout << "Сортировать по:\n1 - Названию\n2 - Количеству\n3 - Цене\n";
+    int choice;
+    std::cin >> choice;
+    std::cin.ignore();
+
+    if (choice == 1) {
+        std::sort(products.begin(), products.end(),
+                  [](const Product& a, const Product& b) {
+                      return a.name < b.name;
+                  });
+        logOutput("Отсортировано по названию");
+    }
+    else if (choice == 2) {
+        std::sort(products.begin(), products.end(),
+                  [](const Product& a, const Product& b) {
+                      return a.quantity < b.quantity;
+                  });
+        logOutput("Отсортировано по количеству");
+    }
+    else if (choice == 3) {
+        std::sort(products.begin(), products.end(),
+                  [](const Product& a, const Product& b) {
+                      return a.price < b.price;
+                  });
+        logOutput("Отсортировано по цене");
+    }
+
+    writeProducts(products);
+    std::cout << "Сортировка выполнена.\n";
+}
+
+// ------------------------- МЕНЮ -------------------------
+int main() {
+    while (true) {
+        std::cout << "\n===== МЕНЮ =====\n";
+        std::cout << "1 — Создать файл и заполнить товарами\n";
+        std::cout << "2 — Поиск товара\n";
+        std::cout << "3 — Добавить новый товар\n";
+        std::cout << "4 — Вывод товаров по цене\n";
+        std::cout << "5 — Сортировать товары\n";
+        std::cout << "0 — Выход\n";
+        std::cout << "Ваш выбор: ";
+
+        int choice;
+        std::cin >> choice;
+        std::cin.ignore();
+
+        switch (choice) {
+            case 1: createAndFill(); break;
+            case 2: searchProduct(); break;
+            case 3: addProduct(); break;
+            case 4: filterByPrice(); break;
+            case 5: sortProducts(); break;
+            case 0: return 0;
+            default: std::cout << "Неверный выбор!\n";
+        }
+    }
+}
