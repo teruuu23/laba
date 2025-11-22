@@ -1,208 +1,101 @@
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <string>
-#include <algorithm>
+-- 1. Создание базы данных (с предварительным удалением, если нужно)
+DROP DATABASE IF EXISTS order_management;
+CREATE DATABASE order_management;
+USE order_management;
 
-struct Product {
-    std::string name;
-    int quantity;
-    double price;
-};
+-- Остальной код без изменений...
 
-// ------- Функция записи результата в output.txt -------
-void logOutput(const std::string& text) {
-    std::ofstream out("output.txt", std::ios::app);
-    out << text << "\n";
-    out.close();
-}
+-- 2. Создание таблицы products
+CREATE TABLE products (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    price DECIMAL(10,2) NOT NULL
+);
 
-// ------- Чтение товаров из файла -------
-std::vector<Product> readProducts() {
-    std::vector<Product> products;
-    std::ifstream file("orders.txt");
+-- 3. Создание таблицы orders
+CREATE TABLE orders (
+    order_id INT AUTO_INCREMENT PRIMARY KEY,
+    order_date DATE NOT NULL
+);
 
-    if (!file.is_open()) return products;
+-- 4. Создание таблицы order_items со связями
+CREATE TABLE order_items (
+    order_item_id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    product_id INT NOT NULL,
+    quantity INT NOT NULL,
+    total_price DECIMAL(10,2) NOT NULL,
+    FOREIGN KEY (order_id) REFERENCES orders(order_id),
+    FOREIGN KEY (product_id) REFERENCES products(id)
+);
 
-    char buffer[256];
-    while (file.getline(buffer, sizeof(buffer))) {
-        Product p;
-        std::string line(buffer);
-        size_t p1 = line.find('|');
-        size_t p2 = line.find('|', p1 + 1);
+-- 5. Добавление данных в products
+INSERT INTO products (name, price) VALUES
+('Ноутбук', 55000),
+('Мышь', 800),
+('Клавиатура', 1500),
+('Монитор', 12000);
 
-        p.name = line.substr(0, p1);
-        p.quantity = std::stoi(line.substr(p1 + 1, p2 - p1 - 1));
-        p.price = std::stod(line.substr(p2 + 1));
+-- 6. Добавление данных в orders
+INSERT INTO orders (order_date) VALUES
+('2025-01-10'),
+('2025-01-15'),
+('2025-01-20');
 
-        products.push_back(p);
-    }
+-- 7. Добавление данных в order_items
+INSERT INTO order_items (order_id, product_id, quantity, total_price) VALUES
+(1, 1, 1, 55000),
+(1, 2, 2, 1600),
+(2, 4, 1, 12000),
+(3, 3, 3, 4500);
 
-    return products;
-}
+-- 8. Запрос: список всех товаров
+SELECT * FROM products;
 
-// ------- Сохранение товаров в файл после сортировки -------
-void writeProducts(const std::vector<Product>& products) {
-    std::ofstream file("orders.txt");
-    for (const auto& p : products) {
-        file << p.name << "|" << p.quantity << "|" << p.price << "\n";
-    }
-}
+-- 9. Запрос: позиции по заказу №1
+SELECT 
+    oi.order_item_id,
+    p.name,
+    oi.quantity,
+    oi.total_price
+FROM order_items oi
+JOIN products p ON oi.product_id = p.id
+WHERE oi.order_id = 1;
 
-// ------- 1. Создание файла и ввод товаров -------
-void createAndFill() {
-    std::ofstream file("orders.txt");
+-- 10. Запрос: общая стоимость заказа №1
+SELECT 
+    order_id,
+    SUM(total_price) AS total_order_price
+FROM order_items
+WHERE order_id = 1
+GROUP BY order_id;
 
-    while (true) {
-        std::string name;
-        std::cout << "Введите название товара (или пустую строку для выхода): ";
-        std::getline(std::cin, name);
+-- 11. Запрос: заказы за период с общей суммой
+SELECT 
+    o.order_id,
+    o.order_date,
+    SUM(oi.total_price) AS total_sum
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+WHERE o.order_date BETWEEN '2025-01-01' AND '2025-01-31'
+GROUP BY o.order_id, o.order_date;
 
-        if (name.empty()) break;
+-- 12. Отчет: самые часто заказываемые товары за период
+SELECT 
+    p.name,
+    SUM(oi.quantity) AS total_quantity
+FROM order_items oi
+JOIN products p ON p.id = oi.product_id
+JOIN orders o ON o.order_id = oi.order_id
+WHERE o.order_date BETWEEN '2025-01-01' AND '2025-01-31'
+GROUP BY p.name
+ORDER BY total_quantity DESC;
 
-        int quantity;
-        double price;
+-- 13. Обновление цены товара
+UPDATE products
+SET price = 900
+WHERE id = 2;
 
-        std::cout << "Количество: ";
-        std::cin >> quantity;
-        std::cout << "Цена за единицу: ";
-        std::cin >> price;
-        std::cin.ignore();
-
-        file << name << "|" << quantity << "|" << price << "\n";
-        logOutput("Добавлен товар: " + name);
-    }
-
-    file.close();
-}
-
-// ------- 2. Поиск товара -------
-void searchProduct() {
-    std::string target;
-    std::cout << "Введите название товара для поиска: ";
-    std::getline(std::cin, target);
-
-    auto products = readProducts();
-    bool found = false;
-
-    for (const auto& p : products) {
-        if (p.name == target) {
-            std::cout << "Найден: " << p.name << " / " << p.quantity << " шт / "
-                      << p.price << " руб\n";
-            logOutput("Найден товар: " + p.name);
-            found = true;
-        }
-    }
-
-    if (!found) {
-        std::cout << "Товар не найден.\n";
-        logOutput("Поиск: товар '" + target + "' не найден");
-    }
-}
-
-// ------- 3. Добавление нового товара -------
-void addProduct() {
-    std::ofstream file("orders.txt", std::ios::app);
-
-    std::string name;
-    int quantity;
-    double price;
-
-    std::cout << "Название товара: ";
-    std::getline(std::cin, name);
-    std::cout << "Количество: ";
-    std::cin >> quantity;
-    std::cout << "Цена: ";
-    std::cin >> price;
-    std::cin.ignore();
-
-    file << name << "|" << quantity << "|" << price << "\n";
-    file.close();
-
-    logOutput("Добавлен новый товар: " + name);
-}
-
-// ------- 4. Вывод товаров с ценой ниже X -------
-void filterByPrice() {
-    double maxPrice;
-    std::cout << "Введите максимальную цену: ";
-    std::cin >> maxPrice;
-    std::cin.ignore();
-
-    auto products = readProducts();
-
-    logOutput("Товары с ценой <= " + std::to_string(maxPrice) + ":");
-
-    for (const auto& p : products) {
-        if (p.price <= maxPrice) {
-            std::cout << p.name << " / " << p.quantity << " шт / "
-                      << p.price << " руб\n";
-
-            logOutput(p.name + " | " + std::to_string(p.quantity) +
-                      " | " + std::to_string(p.price));
-        }
-    }
-}
-
-// ------- 5. Сортировка -------
-void sortProducts() {
-    auto products = readProducts();
-
-    std::cout << "Сортировать по:\n1 - Названию\n2 - Количеству\n3 - Цене\n";
-    int choice;
-    std::cin >> choice;
-    std::cin.ignore();
-
-    if (choice == 1) {
-        std::sort(products.begin(), products.end(),
-                  [](const Product& a, const Product& b) {
-                      return a.name < b.name;
-                  });
-        logOutput("Отсортировано по названию");
-    }
-    else if (choice == 2) {
-        std::sort(products.begin(), products.end(),
-                  [](const Product& a, const Product& b) {
-                      return a.quantity < b.quantity;
-                  });
-        logOutput("Отсортировано по количеству");
-    }
-    else if (choice == 3) {
-        std::sort(products.begin(), products.end(),
-                  [](const Product& a, const Product& b) {
-                      return a.price < b.price;
-                  });
-        logOutput("Отсортировано по цене");
-    }
-
-    writeProducts(products);
-    std::cout << "Сортировка выполнена.\n";
-}
-
-// ------------------------- МЕНЮ -------------------------
-int main() {
-    while (true) {
-        std::cout << "\n===== МЕНЮ =====\n";
-        std::cout << "1 — Создать файл и заполнить товарами\n";
-        std::cout << "2 — Поиск товара\n";
-        std::cout << "3 — Добавить новый товар\n";
-        std::cout << "4 — Вывод товаров по цене\n";
-        std::cout << "5 — Сортировать товары\n";
-        std::cout << "0 — Выход\n";
-        std::cout << "Ваш выбор: ";
-
-        int choice;
-        std::cin >> choice;
-        std::cin.ignore();
-
-        switch (choice) {
-            case 1: createAndFill(); break;
-            case 2: searchProduct(); break;
-            case 3: addProduct(); break;
-            case 4: filterByPrice(); break;
-            case 5: sortProducts(); break;
-            case 0: return 0;
-            default: std::cout << "Неверный выбор!\n";
-        }
-    }
-}
+-- 14. Удаление позиции заказа
+DELETE FROM order_items
+WHERE order_item_id = 3;
