@@ -1,9 +1,9 @@
--- 1. Создание базы данных (с предварительным удалением, если нужно)
+-- 1. Создание базы данных (с предварительным удалением)
 DROP DATABASE IF EXISTS order_management;
 CREATE DATABASE order_management;
 USE order_management;
 
--- Остальной код без изменений...
+
 
 -- 2. Создание таблицы products
 CREATE TABLE products (
